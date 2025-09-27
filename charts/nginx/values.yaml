@@ -1,0 +1,7 @@
+replicaCount: 2
+image:
+  repository: nginx
+  tag: stable
+service:
+  type: ClusterIP # ここは Terraform で LB 作るため一旦 ClusterIP
+  port: 80
