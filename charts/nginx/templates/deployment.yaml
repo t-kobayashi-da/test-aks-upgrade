@@ -7,13 +7,13 @@ spec:
   selector:
     matchLabels:
       app: {{ include "nginx.name" . }}
-    template:
-      metadata:
-        labels:
-          app: {{ include "nginx.name" . }}
-      spec:
-        containers:
-        - name: nginx
-          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
-          ports:
-          - containerPort: 80
+  template:
+    metadata:
+      labels:
+        app: {{ include "nginx.name" . }}
+    spec:
+      containers:
+      - name: nginx
+        image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+        ports:
+        - containerPort: 80
