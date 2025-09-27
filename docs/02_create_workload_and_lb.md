@@ -219,7 +219,8 @@ Unable to create application: application spec for nginx is invalid: InvalidSpec
 - nginx Chart の deployment.yaml と service.yaml では、{{ include "nginx.fullname" . }} が使われてる
 - しかし charts/nginx/templates/_helpers.tpl が作られておらず、nginx.fullname というテンプレートが定義されていないため Error: template: no template "nginx.fullname" が出ている
 
-charts/nginx/templates/_helpers.tpl に以下を追加
+解決策
+- charts/nginx/templates/_helpers.tpl に以下を追加
 ```yaml
 {{- define "nginx.name" -}}
 {{ .Chart.Name }}
@@ -236,7 +237,15 @@ charts/nginx/templates/_helpers.tpl に以下を追加
 
 1. **nginx Service 用に Terraform を修正**
 
+terraform/aks/k8s_services.tf
 ```hcl
+provider "kubernetes" {
+  host                   = azurerm_kubernetes_cluster.aks.kube_config[0].host
+  client_certificate     = base64decode(azurerm_kubernetes_cluster.aks.kube_config[0].client_certificate)
+  client_key             = base64decode(azurerm_kubernetes_cluster.aks.kube_config[0].client_key)
+  cluster_ca_certificate = base64decode(azurerm_kubernetes_cluster.aks.kube_config[0].cluster_ca_certificate)
+}
+
 resource "kubernetes_service" "nginx_lb" {
   metadata {
     name = "nginx"
@@ -255,11 +264,34 @@ resource "kubernetes_service" "nginx_lb" {
     }
   }
 }
+
+resource "kubernetes_service" "argocd_lb" {
+  metadata {
+    name      = "argocd-server-lb"
+    namespace = "argocd"
+  }
+
+  spec {
+    type = "LoadBalancer"
+    selector = {
+      app.kubernetes.io/name = "argocd-server"
+    }
+
+    port {
+      name        = "https"
+      port        = 443       # 任意の外部ポート
+      target_port = 443       # Pod 内は 443
+    }
+  }
+}
+
 ```
 
 2. **Terraform 適用**
 
 ```bash
+terraform init
+terraform plan
 terraform apply -auto-approve
 ```
 
@@ -267,6 +299,7 @@ terraform apply -auto-approve
 
 ```bash
 kubectl get svc nginx -n default
+kubectl get svc -n argocd
 ```
 
 ---
@@ -299,6 +332,3 @@ curl http://<EXTERNAL-IP>
 * nginx は GitHub の Helm Chart を参照して Argo CD がデプロイ
 * LoadBalancer は Terraform で作成、EXTERNAL-IP でアクセス確認
 
----
-
-この手順で、**CLI に依存せず Web UI + Terraform + kubectl だけでハンズオン可能**です。
