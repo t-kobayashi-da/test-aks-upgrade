@@ -219,6 +219,17 @@ Unable to create application: application spec for nginx is invalid: InvalidSpec
 - nginx Chart の deployment.yaml と service.yaml では、{{ include "nginx.fullname" . }} が使われてる
 - しかし charts/nginx/templates/_helpers.tpl が作られておらず、nginx.fullname というテンプレートが定義されていないため Error: template: no template "nginx.fullname" が出ている
 
+charts/nginx/templates/_helpers.tpl に以下を追加
+```yaml
+{{- define "nginx.name" -}}
+{{ .Chart.Name }}
+{{- end -}}
+
+{{- define "nginx.fullname" -}}
+{{ .Release.Name }}-{{ .Chart.Name }}
+{{- end -}}
+```
+
 ---
 
 ### 4. Terraform で LoadBalancer 作成
